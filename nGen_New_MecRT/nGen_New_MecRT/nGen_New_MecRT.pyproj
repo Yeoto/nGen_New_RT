@@ -11,6 +11,9 @@
     <OutputPath>.</OutputPath>
     <Name>nGen_New_MecRT</Name>
     <RootNamespace>nGen_New_MecRT</RootNamespace>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>"C:\MIDAS\git\wbs\bin\vc110\Debug\x64\midas nGen.exe" "Base" "D:\Model_files\nGen\RT Testing\RT Testing Models"</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,7 +24,16 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CheckerCollection.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="emaillib.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="nGen_New_MecRT.py" />
+    <Compile Include="PyUtils.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
