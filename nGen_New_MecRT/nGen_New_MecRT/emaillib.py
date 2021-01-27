@@ -7,8 +7,6 @@ import os
 
 class emaillib:
     def sendMail(self, to_email, file_list, append_text):
-        to_list = []
-
         msg = MIMEMultipart()
         message = ""
         for append_msg in append_text:

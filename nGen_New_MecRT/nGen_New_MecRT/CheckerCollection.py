@@ -2,7 +2,8 @@ import openpyxl
 import os
 import re
 import PyUtils
-import nGen_New_MecRT
+from PyUtils import Logger
+import copy
 
 class Checker:
     def __init__(self):
@@ -10,19 +11,23 @@ class Checker:
         self.list = []
         self.KeyIndex = -1
         self.bTemp = False
+        self.nLine = -1
+        self.bCheckedData = False
 
     def HasKey(self):
         return self.KeyIndex != -1
 
-    def IsSame(self, CheckerColl, DataD):
-        if self.strID != DataD.strID:
+    def IsSame(self, DataColl_This, DataColl_Tgt, TgtDataD):
+        if self.strID != TgtDataD.strID:
             return False
 
+        #checker는 Collector 둘중 아무거나에서 가져와도 됨
+        CheckerColl = DataColl_This
         if self.strID not in CheckerColl.CheckerList:
             return False
 
         list_cnt = len(self.list)
-        if list_cnt != len(DataD.list):
+        if list_cnt != len(TgtDataD.list):
             return False
         
         CheckerD = CheckerColl.CheckerList[self.strID]
@@ -33,43 +38,56 @@ class Checker:
 
         for i in range(list_cnt):
             src_data = self.list[i]
-            dst_data = DataD.list[i]
+            tgt_data = TgtDataD.list[i]
 
-            if CheckerD.bTemp == False:
+            if i < len(CheckerD.list):
                 if type(CheckerD.list[i]) == type(''):
-                    RecursiveData_List = CheckerColl.DataList[CheckerD.list[i]]
-                    if type(RecursiveData_List) != type({}):
+                    strRecursiveID = CheckerD.list[i]
+                    if strRecursiveID not in DataColl_This.DataList or strRecursiveID not in DataColl_Tgt.DataList:
+                        continue
+
+                    RecursiveData_List_This = DataColl_This.DataList[CheckerD.list[i]]
+                    RecursiveData_List_Tgt = DataColl_Tgt.DataList[CheckerD.list[i]]
+
+                    if type(RecursiveData_List_This) != type({}) or type(RecursiveData_List_Tgt) != type({}):
                         return False
                     
-                    if type(src_data) != type(int) or type(dst_data) != type(int):
+                    if type(src_data) != type(0) or type(tgt_data) != type(0):
                         return False
 
-                    src_recursive_Data = RecursiveData_List[src_data]
-                    dst_recursive_Data = RecursiveData_List[dst_data]
-
-                    if src_recursive_Data.IsSame(CheckerColl, dst_recursive_Data) == False:
+                    if src_data not in RecursiveData_List_This or tgt_data not in RecursiveData_List_Tgt:
                         return False
-                        
-                elif type(CheckerD.list[i]) != type(bool):
+
+                    src_recursive_Data = RecursiveData_List_This[src_data]
+                    dst_recursive_Data = RecursiveData_List_Tgt[tgt_data]
+
+                    if src_recursive_Data.IsSame(DataColl_This, DataColl_Tgt, dst_recursive_Data) == False:
+                        return False
+
+                elif type(CheckerD.list[i]) != type(False):
                     return False
 
                 if CheckerD.list[i] == False:
                     continue
 
-            if type(src_data) != type(dst_data):
+            if type(src_data) != type(tgt_data):
                 return False
-            if src_data != dst_data:
+
+            if src_data != tgt_data:
                 return False
 
         return True
+
 class CheckerCollection:
     def __init__(self):
+        self.FileFrom = ''
         self.CheckerList = {}
         self.DataList = {}
         self.__PrevID = ''
 
     def CopyFrom(self, CheckColl):
-        self.CheckerList = CheckColl.CheckerList
+        self.CheckerList = copy.deepcopy(CheckColl.CheckerList)
+        self.DataList = copy.deepcopy(CheckColl.DataList)
 
     def MakeChekcerListFromExcel(self):
         strChkDataPath = os.path.abspath('CheckerData.xlsx')
@@ -140,8 +158,10 @@ class CheckerCollection:
 
         return CheckerD
 
-    def AddData(self, data_list):
+    def AddData(self, data_list, nLine):
         DataD = self.MakeToChecker(data_list)
+        DataD.nLine = nLine+1
+
         strID = DataD.strID
 
         KeyIndex = self.CheckerList[strID].KeyIndex
@@ -156,29 +176,6 @@ class CheckerCollection:
             self.DataList[strID][DataD.list[KeyIndex]] = DataD
 
         return True
-
-    def DelData(self, data_list):
-        DataD = self.MakeToChecker(data_list)
-
-        if DataD.strID not in self.DataList:
-            return False
-
-        DataList = self.DataList[DataD.strID]
-        
-        if type(DataList) == type([]):
-            for index in range(len(DataList)):
-                DstDataD = DataList[index]
-                if DataD.IsSame(self, DstDataD):
-                    del self.DataList[index]
-                    return True
-        elif type(DataList) == type({}):
-            for Key in DataList:
-                DstDataD = DataList[Key]
-                if DataD.IsSame(self, DstDataD):
-                    del self.DataList[DataD.strID][Key]           
-                    return True
-
-        return False
 
     def AddTempChecker(self, strID):
         # 일단 문자+숫자로 이루어진 문자열만 strID로 쓰도록 함. 설마 이렇게 생긴거 말고 있겠어..?
@@ -208,37 +205,21 @@ class CheckerCollection:
         else:
             return True
 
-    def MakeDataListFromMecFile(self, mec_path):
-        mecfile = open(mec_path, "r")
-        mecfile_lines = mecfile.readlines()
-
-        i = 0
-        while i < len(mecfile_lines):
-            (parsed_list, i) = PyUtils.GetParsedBlock(mecfile_lines, i)
-
-            if len(parsed_list) < 2:
-                continue
-            
-            if self.IsValidData(parsed_list):
-                self.AddData(parsed_list)
-            else:
-                if self.AddTempChecker(parsed_list[0]):
-                    self.AddData(parsed_list)
-    
-    def DeleteDataListFromMecFile(self, mec_path):
+    def AddDataListFromMecFile(self, mec_path):
+        self.FileFrom = mec_path
         mecfile = open(mec_path, "r")
         mecfile_lines = mecfile.readlines()
 
         i = 0
         while i < len(mecfile_lines):
             prev_line = i
-            (parsed_list, i) = PyUtils.GetParsedBlock(mecfile_lines, prev_line)
+            (parsed_list, i) = PyUtils.GetParsedBlock(mecfile_lines, i)
 
             if len(parsed_list) < 2:
                 continue
             
-            if not self.IsValidData(parsed_list):
-                continue
-
-            if not self.DelData(parsed_list):
-                nGen_New_MecRT.log("Can't Find Data On Line:{}".format(prev_line))
+            if self.IsValidData(parsed_list):
+                self.AddData(parsed_list, prev_line)
+            else:
+                if self.AddTempChecker(parsed_list[0]):
+                    self.AddData(parsed_list, prev_line)
