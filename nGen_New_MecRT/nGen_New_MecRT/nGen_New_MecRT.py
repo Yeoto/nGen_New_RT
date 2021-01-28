@@ -11,7 +11,7 @@ from MLogger import Logger
 
 def main():
     if len(sys.argv) < 4:
-        print('Parameter Error. Use Parameter "nGen.exe Path" "Base Mec Files Folder" "Target mpb Files Folder" [mail to]')
+        print('Parameter Error. Use Parameter "nGen.exe Path" "Base Mec Files Folder" "Target mpb Files Folder"')
         return
 
     dt = datetime.datetime.now()
@@ -64,6 +64,7 @@ def main():
             MyLogger.AppendCase(tgt_mec_path, "Mec File Not Matching !!!", logging.ERROR)
         else:
             MyLogger.AppendCase(tgt_mec_path, "", logging.INFO)
+            shutil.copy(full_path_tgt, full_path_base)
 
         MyLogger.log('\n\n\n\n')
     
