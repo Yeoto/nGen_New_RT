@@ -30,7 +30,7 @@ def main():
     subprocess.Popen(fullpath, shell=True).wait()
     
     MyLogger = Logger.instance()
-    MyLogger.DefineLogger(CopytoPath)
+    MyLogger.DefineLogger(CopytoPath, os.path.abspath(sys.argv[0] + "\.."))
 
     base_mec_files = PyUtils.search_files(Base_root_Path)
     tgt_mec_files = PyUtils.search_files(CopytoPath)

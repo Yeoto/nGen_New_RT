@@ -20,11 +20,13 @@ class Logger:
         self.logger = None
         self.TestCases = []
         self.LoggerPath = ''
+        self.JunitPath = ''
 
-    def DefineLogger(self, root_path):
+    def DefineLogger(self, root_path, junit_path):
         self.logger = logging.getLogger('nGen_MecRT')
         self.logger.setLevel(logging.DEBUG)
         self.LoggerPath = root_path
+        self.JunitPath = junit_path
 
         handler = logging.FileHandler(root_path + "\\log.log", "w", encoding='utf-8')
         handler.setLevel(logging.DEBUG)
@@ -60,10 +62,9 @@ class Logger:
 
     def ExportXml(self):
         ts = TestSuite("nGen Mec Regression Test", self.TestCases)
-        JunitPath = self.LoggerPath + "\\junit.xml"
-        with open(JunitPath, 'w') as f:
+        JunitTempPath = self.LoggerPath + "\\junit.xml"
+        with open(JunitTempPath, 'w') as f:
             TestSuite.to_file(f, [ts], prettyprint=False)
         f.close()
 
-        CopyToPath = os.path.abspath(self.LoggerPath + "\..\..")
-        shutil.copy(JunitPath, CopyToPath)
+        shutil.copy(JunitTempPath, self.JunitPath)
