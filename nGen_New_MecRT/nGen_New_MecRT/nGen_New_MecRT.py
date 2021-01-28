@@ -36,7 +36,7 @@ def main():
     tgt_mec_files = PyUtils.search_files(CopytoPath)
 
     CheckerColl = CheckerCollection.CheckerCollection()
-    CheckerColl.MakeChekcerListFromExcel()
+    CheckerColl.MakeChekcerListFromExcel((os.path.abspath(sys.argv[0] + "\..")) + "\\CheckerData.xlsx")
 
     file_modified = False
     for tgt_mec_path in tgt_mec_files:

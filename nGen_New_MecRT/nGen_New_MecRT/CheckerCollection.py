@@ -1,5 +1,4 @@
 import openpyxl
-import os
 import re
 import PyUtils
 import copy
@@ -88,9 +87,8 @@ class CheckerCollection:
         self.CheckerList = copy.deepcopy(CheckColl.CheckerList)
         self.DataList = copy.deepcopy(CheckColl.DataList)
 
-    def MakeChekcerListFromExcel(self):
-        strChkDataPath = os.path.abspath('CheckerData.xlsx')
-        wb = openpyxl.load_workbook(strChkDataPath)
+    def MakeChekcerListFromExcel(self, CheckerExcelPath):
+        wb = openpyxl.load_workbook(CheckerExcelPath)
         sheet = wb.active
 
         nRow = 2
