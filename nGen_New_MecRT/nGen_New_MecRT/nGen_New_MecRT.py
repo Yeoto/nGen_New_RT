@@ -1,15 +1,13 @@
-#-*- coding: utf-8 -*-
 import sys
-import difflib
 import os
 import subprocess
 import datetime
-import re
+import logging
+import shutil
 
 import CheckerCollection
-import emaillib
 import PyUtils
-from PyUtils import Logger
+from MLogger import Logger
 
 def main():
     if len(sys.argv) < 4:
@@ -22,9 +20,6 @@ def main():
     Base_root_Path = os.path.abspath(sys.argv[2])
     Base_upper_Path = os.path.abspath(Base_root_Path + "\..")
     RTModelPath = os.path.abspath(sys.argv[3])
-    toEmail = ''
-    if len(sys.argv) > 4:
-        toEmail = sys.argv[4]
 
     if not os.path.isfile(Program_Path):
         print('Not Fount Program Path : "{}"'.format(Program_Path))
@@ -34,8 +29,8 @@ def main():
     fullpath = r'"{}" -RT PATH:"{}" COPYTO:"{}"'.format(Program_Path, RTModelPath, CopytoPath)
     subprocess.Popen(fullpath, shell=True).wait()
     
-    MLogger = Logger.instance()
-    MLogger.DefineLogger(CopytoPath)
+    MyLogger = Logger.instance()
+    MyLogger.DefineLogger(CopytoPath)
 
     base_mec_files = PyUtils.search_files(Base_root_Path)
     tgt_mec_files = PyUtils.search_files(CopytoPath)
@@ -44,12 +39,14 @@ def main():
     CheckerColl.MakeChekcerListFromExcel()
 
     file_modified = False
-    for base_mec_path in base_mec_files:
-        if not base_mec_path in tgt_mec_files:
-            continue
+    for tgt_mec_path in tgt_mec_files:
+        full_path_tgt = os.path.join(CopytoPath, tgt_mec_path)
+        full_path_base = os.path.join(Base_root_Path, tgt_mec_path)
 
-        full_path_base = os.path.join(Base_root_Path, base_mec_path)
-        full_path_tgt = os.path.join(CopytoPath, base_mec_path)
+        if not tgt_mec_path in base_mec_files:
+            MyLogger.AppendCase(tgt_mec_path, "Can't Find File From Base Path", logging.WARN)
+            shutil.copy(full_path_tgt, full_path_base)
+            continue
 
         DataColl_Base = CheckerCollection.CheckerCollection()
         DataColl_Base.CopyFrom(CheckerColl)
@@ -60,12 +57,17 @@ def main():
         DataColl_Base.AddDataListFromMecFile(full_path_base)
         DataColl_Tgt.AddDataListFromMecFile(full_path_tgt)
 
-        file_modified |= not PyUtils.IsSameDataColl(DataColl_Base, DataColl_Tgt)
-        MLogger.log('\n\n\n\n')
+        bDiffSuccess = PyUtils.IsSameDataColl(DataColl_Base, DataColl_Tgt)
+        file_modified |= not bDiffSuccess
 
-    if file_modified == True and len(toEmail) > 0:
-        eMailInst = emaillib.emaillib()
-        eMailInst.sendMail(toEmail, [], [''])
+        if bDiffSuccess == False:
+            MyLogger.AppendCase(tgt_mec_path, "Mec File Not Matching !!!", logging.ERROR)
+        else:
+            MyLogger.AppendCase(tgt_mec_path, "", logging.INFO)
+
+        MyLogger.log('\n\n\n\n')
+    
+    MyLogger.ExportXml()
 
 if __name__ == "__main__":
     main()

@@ -2,7 +2,6 @@ import openpyxl
 import os
 import re
 import PyUtils
-from PyUtils import Logger
 import copy
 
 class Checker:
