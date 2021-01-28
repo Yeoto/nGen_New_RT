@@ -7,6 +7,8 @@ def search_files(dirname):
     files = []
     filenames = os.listdir(dirname)
     for filename in filenames:
+        if os.path.splitext(filename)[1] != '.mec':
+            continue
         files.append(filename)
     return files
 
