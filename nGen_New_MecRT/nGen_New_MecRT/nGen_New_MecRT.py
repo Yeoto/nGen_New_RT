@@ -18,7 +18,7 @@ def main():
 
     Program_Path = os.path.abspath(sys.argv[1])
     Base_root_Path = os.path.abspath(sys.argv[2])
-    Base_upper_Path = os.path.abspath(Base_root_Path + "\..")
+    Base_upper_Path = os.path.abspath(Base_root_Path + "\\..")
     RTModelPath = os.path.abspath(sys.argv[3])
 
     if not os.path.isfile(Program_Path):
@@ -30,13 +30,13 @@ def main():
     subprocess.Popen(fullpath, shell=True).wait()
     
     MyLogger = Logger.instance()
-    MyLogger.DefineLogger(CopytoPath, os.path.abspath(sys.argv[0] + "\.."))
+    MyLogger.DefineLogger(CopytoPath, os.path.abspath(sys.argv[0] + "\\.."))
 
     base_mec_files = PyUtils.search_files(Base_root_Path)
     tgt_mec_files = PyUtils.search_files(CopytoPath)
 
     CheckerColl = CheckerCollection.CheckerCollection()
-    CheckerColl.MakeChekcerListFromExcel((os.path.abspath(sys.argv[0] + "\..")) + "\\CheckerData.xlsx")
+    CheckerColl.MakeChekcerListFromExcel((os.path.abspath(sys.argv[0] + "\\..")) + "\\CheckerData.xlsx")
 
     file_modified = False
     for tgt_mec_path in tgt_mec_files:

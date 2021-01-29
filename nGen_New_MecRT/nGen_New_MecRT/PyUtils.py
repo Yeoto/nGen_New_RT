@@ -1,6 +1,7 @@
 import os
 import re
 import CheckerCollection
+from sys import float_info
 from MLogger import Logger
 
 def search_files(dirname):
@@ -136,3 +137,16 @@ def IsSameDataColl(DataColl_Base : CheckerCollection, DataColl_Tgt : CheckerColl
         bSuccess &= ExistNoneCheckedData(DataColl_Base.DataList[strID], DataColl_Base.FileFrom)
 
     return bSuccess
+
+def IsSameValue(val1, val2) -> bool:
+    if type(val1) != type(val2):
+        return False
+
+    if type(val1) == type(0.0):
+        if abs(val1 - val2) > float_info.epsilon:
+            return False
+    else:
+        if val1 != val2:
+            return False
+            
+    return True

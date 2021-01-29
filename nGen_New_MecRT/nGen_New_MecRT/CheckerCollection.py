@@ -68,10 +68,7 @@ class Checker:
                 if CheckerD.list[i] == False:
                     continue
 
-            if type(src_data) != type(tgt_data):
-                return False
-
-            if src_data != tgt_data:
+            if not PyUtils.IsSameValue(src_data, tgt_data):
                 return False
 
         return True
@@ -144,9 +141,9 @@ class CheckerCollection:
 
         for strData in data_list[1:]:
             if type(strData) == type(''):
-                if PyUtils.IsSimmilarByPattern(strData, '\d+\.\d*') == True:
+                if PyUtils.IsSimmilarByPattern(strData, '\\d+\\.\\d*') == True:
                     CheckerD.list.append(float(strData))
-                elif PyUtils.IsSimmilarByPattern(strData, '\d+') == True:
+                elif PyUtils.IsSimmilarByPattern(strData, '\\d+') == True:
                     CheckerD.list.append(int(strData))
                 else:
                     CheckerD.list.append(strData)
@@ -176,7 +173,7 @@ class CheckerCollection:
 
     def AddTempChecker(self, strID):
         # 일단 문자+숫자로 이루어진 문자열만 strID로 쓰도록 함. 설마 이렇게 생긴거 말고 있겠어..?
-        if PyUtils.IsSimmilarByPattern(strID, '[\w\d]+') == False:
+        if PyUtils.IsSimmilarByPattern(strID, '[\\w\\d]+') == False:
             return False
 
         if strID in self.CheckerList:
