@@ -21,6 +21,7 @@ class Logger:
         self.TestCases = []
         self.LoggerPath = ''
         self.JunitPath = ''
+        self.StakcedLog = []
 
     def DefineLogger(self, root_path, junit_path):
         self.logger = logging.getLogger('nGen_MecRT')
@@ -59,6 +60,19 @@ class Logger:
             self.logger.log(lvl, message)
         else:
             logging.log(lvl, message)
+
+    def stackLog(self, message, lvl = logging.INFO):
+        LogData = (message, lvl)
+        self.StakcedLog.append(LogData)
+
+    def PopAllLog(self):
+        for LogData in self.StakcedLog:
+            message, lvl = LogData
+            if self.logger:
+                self.logger.log(lvl, message)
+            else:
+                logging.log(lvl, message)
+        self.StakcedLog.clear()
 
     def ExportXml(self):
         ts = TestSuite("nGen Mec Regression Test", self.TestCases)

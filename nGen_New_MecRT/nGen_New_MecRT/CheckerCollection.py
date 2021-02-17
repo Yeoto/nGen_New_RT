@@ -2,6 +2,7 @@ import openpyxl
 import re
 import PyUtils
 import copy
+from tqdm import tqdm
 
 class Checker:
     def __init__(self):
@@ -39,28 +40,41 @@ class Checker:
             tgt_data = TgtDataD.list[i]
 
             if i < len(CheckerD.list):
-                if type(CheckerD.list[i]) == type(''):
-                    strRecursiveID = CheckerD.list[i]
-                    if strRecursiveID not in DataColl_This.DataList or strRecursiveID not in DataColl_Tgt.DataList:
+                if type(CheckerD.list[i]) == type('') or type(CheckerD.list[i]) == type([]):
+                    list_RecursiveID = []
+                    if type(CheckerD.list[i]) == type(''):
+                        list_RecursiveID.append(CheckerD.list[i])
+                    elif type(CheckerD.list[i]) == type([]):
+                        list_RecursiveID = CheckerD.list[i]
+
+                    bFind = False
+                    for strRecursiveID in list_RecursiveID:
+                        if strRecursiveID not in DataColl_This.DataList or strRecursiveID not in DataColl_Tgt.DataList:
+                            continue
+
+                        RecursiveData_List_This = DataColl_This.DataList[strRecursiveID]
+                        RecursiveData_List_Tgt = DataColl_Tgt.DataList[strRecursiveID]
+
+                        if type(RecursiveData_List_This) != type({}) or type(RecursiveData_List_Tgt) != type({}):
+                            continue
+                        
+                        if type(src_data) != type(0) or type(tgt_data) != type(0):
+                            continue
+
+                        if src_data not in RecursiveData_List_This or tgt_data not in RecursiveData_List_Tgt:
+                            continue
+
+                        src_recursive_Data = RecursiveData_List_This[src_data]
+                        dst_recursive_Data = RecursiveData_List_Tgt[tgt_data]
+
+                        if src_recursive_Data.IsSame(DataColl_This, DataColl_Tgt, dst_recursive_Data) == False:
+                            continue
+
+                        bFind = True
+                    if bFind == False:
+                        return False
+                    else:
                         continue
-
-                    RecursiveData_List_This = DataColl_This.DataList[CheckerD.list[i]]
-                    RecursiveData_List_Tgt = DataColl_Tgt.DataList[CheckerD.list[i]]
-
-                    if type(RecursiveData_List_This) != type({}) or type(RecursiveData_List_Tgt) != type({}):
-                        return False
-                    
-                    if type(src_data) != type(0) or type(tgt_data) != type(0):
-                        return False
-
-                    if src_data not in RecursiveData_List_This or tgt_data not in RecursiveData_List_Tgt:
-                        return False
-
-                    src_recursive_Data = RecursiveData_List_This[src_data]
-                    dst_recursive_Data = RecursiveData_List_Tgt[tgt_data]
-
-                    if src_recursive_Data.IsSame(DataColl_This, DataColl_Tgt, dst_recursive_Data) == False:
-                        return False
 
                 elif type(CheckerD.list[i]) != type(False):
                     return False
@@ -77,6 +91,7 @@ class CheckerCollection:
     def __init__(self):
         self.FileFrom = ''
         self.CheckerList = {}
+        self.DataKeyList = []
         self.DataList = {}
         self.__PrevID = ''
 
@@ -114,9 +129,17 @@ class CheckerCollection:
                 if value == 'END' or nCol >= 1000:
                     break
 
+                if strID == 'TEMPEND':
+                    CheckerD.bTemp = True
+                    break
+
                 if value == 'KEY':
                     CheckerD.KeyIndex = nCol-2
                     value = False
+
+                if type(value) == type(''):
+                    if value.find(',') != -1:
+                        value = value.split(',')
 
                 CheckerD.list.append(value)
                 nCol += 1
@@ -141,7 +164,7 @@ class CheckerCollection:
 
         for strData in data_list[1:]:
             if type(strData) == type(''):
-                if PyUtils.IsSimmilarByPattern(strData, '\\d+\\.\\d*') == True:
+                if PyUtils.IsSimmilarByPattern(strData, '[+-]{0,1}\\d+\\.\\d*') == True:
                     CheckerD.list.append(float(strData))
                 elif PyUtils.IsSimmilarByPattern(strData, '\\d+') == True:
                     CheckerD.list.append(int(strData))
@@ -160,6 +183,9 @@ class CheckerCollection:
 
         KeyIndex = self.CheckerList[strID].KeyIndex
         
+        if strID not in self.DataKeyList:
+            self.DataKeyList.append(strID)
+            
         if KeyIndex == -1:
             if strID not in self.DataList:
                 self.DataList[strID] = []
@@ -204,10 +230,14 @@ class CheckerCollection:
         mecfile = open(mec_path, "r")
         mecfile_lines = mecfile.readlines()
 
+        pbar = tqdm(total=len(mecfile_lines), desc='Parsing...')
+
         i = 0
         while i < len(mecfile_lines):
             prev_line = i
             (parsed_list, i) = PyUtils.GetParsedBlock(mecfile_lines, i)
+
+            pbar.update(i-prev_line)
 
             if len(parsed_list) < 2:
                 continue
@@ -217,3 +247,5 @@ class CheckerCollection:
             else:
                 if self.AddTempChecker(parsed_list[0]):
                     self.AddData(parsed_list, prev_line)
+
+        pbar.close()

@@ -42,7 +42,8 @@ def main():
     for tgt_mec_path in tgt_mec_files:
         full_path_tgt = os.path.join(CopytoPath, tgt_mec_path)
         full_path_base = os.path.join(Base_root_Path, tgt_mec_path)
-
+        
+        MyLogger.log("Checking Mec File : {} ...".format(tgt_mec_path))
         if not tgt_mec_path in base_mec_files:
             MyLogger.AppendCase(tgt_mec_path, "Can't Find File From Base Path", logging.WARN)
             shutil.copy(full_path_tgt, full_path_base)
@@ -56,7 +57,7 @@ def main():
 
         DataColl_Base.AddDataListFromMecFile(full_path_base)
         DataColl_Tgt.AddDataListFromMecFile(full_path_tgt)
-
+        
         bDiffSuccess = PyUtils.IsSameDataColl(DataColl_Base, DataColl_Tgt)
         file_modified |= not bDiffSuccess
 
