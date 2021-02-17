@@ -57,14 +57,14 @@ def main():
 
         DataColl_Base.AddDataListFromMecFile(full_path_base)
         DataColl_Tgt.AddDataListFromMecFile(full_path_tgt)
-        
+
         bDiffSuccess = PyUtils.IsSameDataColl(DataColl_Base, DataColl_Tgt)
         file_modified |= not bDiffSuccess
 
         if bDiffSuccess == False:
             MyLogger.AppendCase(tgt_mec_path, "Mec File Not Matching !!!", logging.ERROR)
         else:
-            MyLogger.AppendCase(tgt_mec_path, "", logging.INFO)
+            MyLogger.AppendCase(tgt_mec_path, "Mec File Clearly Matching !", logging.INFO)
             shutil.copy(full_path_tgt, full_path_base)
 
         MyLogger.log('\n\n\n\n')
