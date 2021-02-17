@@ -3,6 +3,7 @@ import re
 import PyUtils
 import copy
 from tqdm import tqdm
+import concurrent.futures
 
 class Checker:
     def __init__(self):
@@ -15,6 +16,55 @@ class Checker:
 
     def HasKey(self):
         return self.KeyIndex != -1
+
+    def IsSameElement(self, DataColl_This, DataColl_Tgt, CheckData, src_data, tgt_data, bCheckerData):
+        if bCheckerData:
+            if type(CheckData) == type('') or type(CheckData) == type([]):
+                list_RecursiveID = []
+                if type(CheckData) == type(''):
+                    list_RecursiveID.append(CheckData)
+                elif type(CheckData) == type([]):
+                    list_RecursiveID = CheckData
+
+                bFind = False
+                for strRecursiveID in list_RecursiveID:
+                    if strRecursiveID not in DataColl_This.DataList or strRecursiveID not in DataColl_Tgt.DataList:
+                        continue
+
+                    RecursiveData_List_This = DataColl_This.DataList[strRecursiveID]
+                    RecursiveData_List_Tgt = DataColl_Tgt.DataList[strRecursiveID]
+
+                    if type(RecursiveData_List_This) != type({}) or type(RecursiveData_List_Tgt) != type({}):
+                        continue
+                    
+                    if type(src_data) != type(0) or type(tgt_data) != type(0):
+                        continue
+
+                    if src_data not in RecursiveData_List_This or tgt_data not in RecursiveData_List_Tgt:
+                        continue
+
+                    src_recursive_Data = RecursiveData_List_This[src_data]
+                    dst_recursive_Data = RecursiveData_List_Tgt[tgt_data]
+
+                    if src_recursive_Data.IsSame(DataColl_This, DataColl_Tgt, dst_recursive_Data) == False:
+                        continue
+
+                    bFind = True
+                if bFind == False:
+                    return False
+                else:
+                    return True
+
+            elif type(CheckData) != type(False):
+                return False
+
+            if CheckData == False:
+                return True
+
+        if not PyUtils.IsSameValue(src_data, tgt_data):
+            return False
+
+        return True
 
     def IsSame(self, DataColl_This, DataColl_Tgt, TgtDataD):
         if self.strID != TgtDataD.strID:
@@ -35,56 +85,16 @@ class Checker:
             if list_cnt != len(CheckerD.list):
                 return False
 
+        #with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        #    futures = {executor.submit(self.IsSameElement, DataColl_This, DataColl_Tgt, CheckerD.list[i] if i < len(CheckerD.list) else True , self.list[i], TgtDataD.list[i], i < len(CheckerD.list)): i for i in range(list_cnt)}
+        #    for future in concurrent.futures.as_completed(futures):
+        #        if not future.result():
+        #            return False
+
         for i in range(list_cnt):
-            src_data = self.list[i]
-            tgt_data = TgtDataD.list[i]
-
-            if i < len(CheckerD.list):
-                if type(CheckerD.list[i]) == type('') or type(CheckerD.list[i]) == type([]):
-                    list_RecursiveID = []
-                    if type(CheckerD.list[i]) == type(''):
-                        list_RecursiveID.append(CheckerD.list[i])
-                    elif type(CheckerD.list[i]) == type([]):
-                        list_RecursiveID = CheckerD.list[i]
-
-                    bFind = False
-                    for strRecursiveID in list_RecursiveID:
-                        if strRecursiveID not in DataColl_This.DataList or strRecursiveID not in DataColl_Tgt.DataList:
-                            continue
-
-                        RecursiveData_List_This = DataColl_This.DataList[strRecursiveID]
-                        RecursiveData_List_Tgt = DataColl_Tgt.DataList[strRecursiveID]
-
-                        if type(RecursiveData_List_This) != type({}) or type(RecursiveData_List_Tgt) != type({}):
-                            continue
-                        
-                        if type(src_data) != type(0) or type(tgt_data) != type(0):
-                            continue
-
-                        if src_data not in RecursiveData_List_This or tgt_data not in RecursiveData_List_Tgt:
-                            continue
-
-                        src_recursive_Data = RecursiveData_List_This[src_data]
-                        dst_recursive_Data = RecursiveData_List_Tgt[tgt_data]
-
-                        if src_recursive_Data.IsSame(DataColl_This, DataColl_Tgt, dst_recursive_Data) == False:
-                            continue
-
-                        bFind = True
-                    if bFind == False:
-                        return False
-                    else:
-                        continue
-
-                elif type(CheckerD.list[i]) != type(False):
-                    return False
-
-                if CheckerD.list[i] == False:
-                    continue
-
-            if not PyUtils.IsSameValue(src_data, tgt_data):
+            if not self.IsSameElement(DataColl_This, DataColl_Tgt, CheckerD.list[i] if i < len(CheckerD.list) else True , self.list[i], TgtDataD.list[i], i < len(CheckerD.list)):
                 return False
-
+                
         return True
 
 class CheckerCollection:
@@ -129,7 +139,7 @@ class CheckerCollection:
                 if value == 'END' or nCol >= 1000:
                     break
 
-                if strID == 'TEMPEND':
+                if value == 'TEMPEND':
                     CheckerD.bTemp = True
                     break
 

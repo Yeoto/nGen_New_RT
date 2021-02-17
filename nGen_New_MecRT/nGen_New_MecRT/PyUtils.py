@@ -5,6 +5,7 @@ from sys import float_info
 from MLogger import Logger
 import copy
 from tqdm import tqdm
+import concurrent.futures
 
 def search_files(dirname):
     files = []
@@ -74,6 +75,21 @@ def CheckDataToBase_List(DataColl_Base, DataList_Base, DataColl_Tgt, Data_Tgt):
 
     return False
 
+def IsSameData(DataColl_Base, DataList_Base, DataColl_Tgt, TgtDataD, bDict):
+    MyLogger = Logger.instance()
+    
+    bFind = False
+    if bDict == True:
+        bFind = CheckDataToBase_Dict(DataColl_Base, DataList_Base, DataColl_Tgt, TgtDataD)
+    else:
+        bFind = CheckDataToBase_List(DataColl_Base, DataList_Base, DataColl_Tgt, TgtDataD)
+
+    if bFind == False:
+        MyLogger.stackLog("Can't Find Data At Base Mec File. {}:{}".format(DataColl_Tgt.FileFrom, TgtDataD.nLine))
+        return False
+
+    return True
+
 def IsSameDataList(strID, DataColl_Base : CheckerCollection, DataColl_Tgt : CheckerCollection):
     MyLogger = Logger.instance()
 
@@ -87,22 +103,32 @@ def IsSameDataList(strID, DataColl_Base : CheckerCollection, DataColl_Tgt : Chec
     descrip = '{}:({})'.format(strFileaName, strID)
 
     bSuccess = True
+    itr_list = []
+    bDict = False
     if type(DataList_Tgt) == type({}):
-        for Key in tqdm(DataList_Tgt, desc=descrip):
-            TgtDataD = DataList_Tgt[Key]
-            bFind = CheckDataToBase_Dict(DataColl_Base, DataList_Base, DataColl_Tgt, TgtDataD)
-
-            if bFind == False:
-                MyLogger.stackLog("Can't Find Data At Base Mec File. {}:{}".format(DataColl_Tgt.FileFrom, TgtDataD.nLine))
-                bSuccess = False
+        itr_list = DataList_Tgt.keys()
+        bDict = True
     elif type(DataList_Tgt) == type([]):
-        for Key in tqdm(range(0,len(DataList_Tgt)), desc=descrip):
-            TgtDataD = DataList_Tgt[Key]
-            bFind = CheckDataToBase_List(DataColl_Base, DataList_Base, DataColl_Tgt, TgtDataD)
+        itr_list = list(range(len(DataList_Tgt)))
+        bDict = False
 
-            if bFind == False:
-                MyLogger.stackLog("Can't Find Data At Base Mec File. {}:{}".format(DataColl_Tgt.FileFrom, TgtDataD.nLine))
-                bSuccess = False
+    with tqdm(total=len(itr_list), desc=descrip) as pbar:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+            futures = {executor.submit(IsSameData, DataColl_Base, DataList_Base, DataColl_Tgt, DataList_Tgt[Key], bDict): Key for Key in itr_list}
+            bSuccess = True
+            for future in concurrent.futures.as_completed(futures):
+                bSuccess &= future.result()
+                pbar.update(1)
+        pbar.close()
+
+    #elif type(DataList_Tgt) == type([]):
+    #    for Key in tqdm(range(0,len(DataList_Tgt)), desc=descrip):
+    #        TgtDataD = DataList_Tgt[Key]
+    #        bFind = CheckDataToBase_List(DataColl_Base, DataList_Base, DataColl_Tgt, TgtDataD)
+#
+    #        if bFind == False:
+    #            MyLogger.stackLog("Can't Find Data At Base Mec File. {}:{}".format(DataColl_Tgt.FileFrom, TgtDataD.nLine))
+    #            bSuccess = False
 
     return bSuccess
 
